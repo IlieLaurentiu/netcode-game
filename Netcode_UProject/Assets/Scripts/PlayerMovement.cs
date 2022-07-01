@@ -15,7 +15,8 @@ public class PlayerMovement : NetworkBehaviour
     private bool isGrounded;
     private float _initialGravityForce;
 
-    [Header("Camera Offset")]
+    [Header("Camera & Offset")]
+    [SerializeField] private GameObject _cameraClone;
     [SerializeField] private float _offsetX;
     [SerializeField] private float _offsetY;
     [SerializeField] private float _offsetZ;
@@ -23,13 +24,15 @@ public class PlayerMovement : NetworkBehaviour
     #region NetCode
     public override void OnNetworkSpawn()
     {
-        if (!IsOwner) Destroy(this);
-
-        //find the main camera gameobject
-        GameObject camera = Camera.main.gameObject;
-        camera.transform.SetParent(transform);
-        //Maybe set the right position as well
-        camera.transform.position = transform.position + new Vector3(_offsetX, _offsetY, _offsetZ);
+        if (IsOwner)
+        {
+            _cameraClone = Instantiate( _cameraClone, new Vector3(_offsetX, _offsetY, _offsetZ), Quaternion.identity, transform);
+            _cameraClone.transform.rotation = Quaternion.Euler(transform.rotation.x, transform.rotation.y + 90f, transform.rotation.z);
+            _cameraClone.tag = "Untagged";
+        }
+        GameObject.Find("GameManager").GetComponent<GameManager>().playerCount++;
+        transform.name = $"Player No. {GameObject.Find("GameManager").GetComponent<GameManager>().playerCount}";
+        GameObject.Find("GameManager").GetComponent<GameManager>().playerList.Add(gameObject);
     }
     #endregion
 
