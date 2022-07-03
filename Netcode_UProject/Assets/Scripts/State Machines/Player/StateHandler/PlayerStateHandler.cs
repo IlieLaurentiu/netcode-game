@@ -5,16 +5,16 @@ public class PlayerStateHandler : NetworkBehaviour
 {
     #region Fields
     [Header("Directional Movement")]
+    public float gravityForce;
     [SerializeField] private Rigidbody _playerRigidBody;
     [SerializeField] private float _playerSpeed;
-    [SerializeField] private float _gravityForce;
 
     [Header("Jump Settings & Logic")]
     [SerializeField] private LayerMask layerMask;
     [SerializeField] private Transform groundCheck;
     [SerializeField] private float checkSphereRadius;
-    private bool isGrounded;
-    private float _initialGravityForce;
+    [HideInInspector] public bool isGrounded;
+    [HideInInspector] public float initialGravityForce;
 
     [Header("Camera & Offset")]
     [SerializeField] private GameObject _cameraClone;
@@ -41,12 +41,11 @@ public class PlayerStateHandler : NetworkBehaviour
     }
     #endregion
 
+    RaycastHit hit;
     #region State Logic
     void Start()
     {
-        // Set initial gravity to the value of _gravityForce (given through the inspector in Unity)
-        _initialGravityForce = _gravityForce;
-
+        initialGravityForce = gravityForce;
         // starting state for the state machine
         currentState = GroundedState;
         // 'this' is a reference to the context (this EXACT MonoBehaviour script)
@@ -72,22 +71,29 @@ public class PlayerStateHandler : NetworkBehaviour
         float _verticalInput = Input.GetAxis("Vertical") * _playerSpeed * Time.fixedDeltaTime;
 
         // Multiplying by Time.fixedDeltaTime here is unnecessary, because velocity is distance/time. The Rigidbody uses Time.deltaTime internally already
-        _playerRigidBody.velocity = -transform.forward * _horizontalInput + transform.right * _verticalInput + transform.up * _gravityForce;
+        _playerRigidBody.velocity = -transform.forward * _horizontalInput + transform.right * _verticalInput + transform.up * gravityForce;
 
         // if the player is grounded, set our custom gravity to 0. Doing so keeps the rigidbody's default gravity and let's the player move smoother
         if (isGrounded)
         {
-            _gravityForce = 0;
+            gravityForce = 0;
         }
-        else
+        else if (!isGrounded)
         {
-            _gravityForce = _initialGravityForce;
+            gravityForce = initialGravityForce;
         }
+        print(isGrounded);
     }
 
     void Update()
     {
         currentState.UpdateState(this);
+    }
+
+    void OnDrawGizmos()
+    {
+        Gizmos.color = Color.red;
+        Gizmos.DrawWireSphere(groundCheck.position, checkSphereRadius);
     }
     #endregion
 }
