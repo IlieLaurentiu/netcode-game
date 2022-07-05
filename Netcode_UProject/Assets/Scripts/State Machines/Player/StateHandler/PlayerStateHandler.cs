@@ -6,7 +6,7 @@ public class PlayerStateHandler : NetworkBehaviour
     #region Fields
     [Header("Directional Movement")]
     public float gravityForce;
-    [SerializeField] private Rigidbody _playerRigidBody;
+    [SerializeField] public Rigidbody playerRigidBody;
     [SerializeField] private float _playerSpeed;
 
     [Header("Jump Settings & Logic")]
@@ -21,6 +21,8 @@ public class PlayerStateHandler : NetworkBehaviour
     [SerializeField] private float _offsetX;
     [SerializeField] private float _offsetY;
     [SerializeField] private float _offsetZ;
+    public float horizontalInput;
+    public float verticalInput;
 
     PlayerBaseState currentState;
     public PlayerGroundedState GroundedState = new PlayerGroundedState();
@@ -41,11 +43,9 @@ public class PlayerStateHandler : NetworkBehaviour
     }
     #endregion
 
-    RaycastHit hit;
-    #region State Logic
+    #region State Transition Logic
     void Start()
     {
-        initialGravityForce = gravityForce;
         // starting state for the state machine
         currentState = GroundedState;
         // 'this' is a reference to the context (this EXACT MonoBehaviour script)
@@ -63,37 +63,17 @@ public class PlayerStateHandler : NetworkBehaviour
     }
     private void FixedUpdate()
     {
+        // Read player Input for the Horizontal and Vertical axis, multiply it by _playerSpeed and then by Time.fixedDeltaTime to keep it constant with the physics update
+        horizontalInput = Input.GetAxis("Horizontal") * _playerSpeed * Time.fixedDeltaTime;
+        verticalInput = Input.GetAxis("Vertical") * _playerSpeed * Time.fixedDeltaTime;
+
         // Check for ground below the player
         isGrounded = Physics.CheckSphere(groundCheck.position, checkSphereRadius, layerMask);
-
-        // Read player Input for the Horizontal and Vertical axis, multiply it by _playerSpeed and then by Time.fixedDeltaTime to keep it constant with the physics update
-        float _horizontalInput = Input.GetAxis("Horizontal") * _playerSpeed * Time.fixedDeltaTime;
-        float _verticalInput = Input.GetAxis("Vertical") * _playerSpeed * Time.fixedDeltaTime;
-
-        // Multiplying by Time.fixedDeltaTime here is unnecessary, because velocity is distance/time. The Rigidbody uses Time.deltaTime internally already
-        _playerRigidBody.velocity = -transform.forward * _horizontalInput + transform.right * _verticalInput + transform.up * gravityForce;
-
-        // if the player is grounded, set our custom gravity to 0. Doing so keeps the rigidbody's default gravity and let's the player move smoother
-        if (isGrounded)
-        {
-            gravityForce = 0;
-        }
-        else if (!isGrounded)
-        {
-            gravityForce = initialGravityForce;
-        }
-        print(isGrounded);
     }
 
     void Update()
     {
         currentState.UpdateState(this);
-    }
-
-    void OnDrawGizmos()
-    {
-        Gizmos.color = Color.red;
-        Gizmos.DrawWireSphere(groundCheck.position, checkSphereRadius);
     }
     #endregion
 }
